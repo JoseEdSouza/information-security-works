@@ -1,73 +1,91 @@
-# React + TypeScript + Vite
+# GitLab Viewer - OAuth2 Authentication & Integration
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este documento detalha a implementação da autenticação e a integração com a API do GitLab nesta aplicação.
 
-Currently, two official plugins are available:
+## 🔐 Autenticação (OAuth 2.0)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+A aplicação utiliza o protocolo **OAuth 2.0** com o fluxo **Authorization Code com PKCE** (Proof Key for Code Exchange), que é o padrão recomendado para Single Page Applications (SPAs) por oferecer maior segurança, eliminando a necessidade de armazenar o `client_secret` no front-end.
 
-## React Compiler
+### Biblioteca Utilizada
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Utilizamos a biblioteca `react-oauth2-code-pkce` para gerenciar todo o ciclo de vida da autenticação. Ela abstrai a complexidade de:
 
-## Expanding the ESLint configuration
+- Gerar o `code_verifier` e `code_challenge`.
+- Redirecionar para o GitLab.
+- Trocar o código de autorização pelo token de acesso.
+- Gerenciar a sessão do usuário (armazenada em `sessionStorage`).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Configuração e Escopos
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+A configuração da autenticação está centralizada no arquivo `src/main.tsx`.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Escopos Solicitados:**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `read_user`: Permite acesso de leitura aos dados do perfil do usuário autenticado (nome, avatar, username).
+- `read_api`: Concede acesso de leitura à API do GitLab, permitindo listar projetos e repositórios aos quais o usuário tem acesso.
+*Nota: Embora o nome seja `read_api`, o token também é usado para criar projetos, dependendo das permissões do usuário no GitLab.*
+
+### Fluxo de Autenticação
+
+1. **Início**: O usuário clica em "Login".
+2. **Redirecionamento**: A aplicação redireciona para o GitLab (`VITE_GITLAB_AUTH_URL`) com o `client_id`, `redirect_uri`, `scope` e o `code_challenge`.
+3. **Consentimento**: O usuário faz login no GitLab e autoriza a aplicação.
+4. **Callback**: O GitLab redireciona de volta para a aplicação (`VITE_GITLAB_REDIRECT_URI`) com um `code`.
+5. **Troca de Token**: A aplicação envia o `code` e o `code_verifier` original para o endpoint de token (`VITE_GITLAB_TOKEN_URL`).
+6. **Acesso**: O GitLab retorna o `access_token`, que é armazenado e usado nas requisições subsequentes.
+
+---
+
+## 🚀 Integração com GitLab API
+
+Todas as chamadas à API são centralizadas no `GitLabService` (`src/services/GitLabService.ts`), que injeta automaticamente o token Bearer nos headers.
+
+### Variáveis de Ambiente Necessárias
+
+Para rodar a aplicação, crie um arquivo `.env` na raiz do projeto `w01-oauth2/app` com as seguintes variáveis:
+
+```env
+VITE_GITLAB_CLIENT_ID=seu_application_id_do_gitlab
+VITE_GITLAB_AUTH_URL=https://gitlab.com/oauth/authorize
+VITE_GITLAB_TOKEN_URL=https://gitlab.com/oauth/token
+VITE_GITLAB_REDIRECT_URI=http://localhost:5173/ # Ou a URL de produção
+VITE_GITLAB_API_URL=https://gitlab.com/api/v4
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Endpoints Consumidos
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+A aplicação consome os seguintes endpoints da API v4 do GitLab:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+#### 1. Obter Usuário Atual
+
+- **Endpoint**: `GET /user`
+- **Uso**: Recuperar informações do perfil do usuário logado (nome, avatar, ID) para exibição na interface.
+
+#### 2. Listar Projetos (Repositórios)
+
+- **Endpoint**: `GET /projects`
+- **Parâmetros**:
+  - `membership=true`: Retorna apenas projetos que o usuário é membro.
+  - `simple=true`: Retorna uma versão simplificada do objeto do projeto (melhora performance).
+  - `page` & `per_page`: Para paginação dos resultados.
+- **Uso**: Exibir a lista de repositórios na dashboard.
+
+#### 3. Criar Novo Projeto
+
+- **Endpoint**: `POST /projects`
+- **Body**:
+  - `name`: Nome do projeto.
+  - `path`: Caminho da URL (gerado a partir do nome).
+  - `description`: Descrição do projeto.
+  - `visibility`: Definido como `private` por padrão para segurança.
+  - `initialize_with_readme`: `true/false`.
+- **Uso**: Permitir que o usuário crie novos repositórios privados diretamente pela interface.
+
+---
+
+## 🛠️ Tecnologias Envolvidas
+
+- **React**: Framework de UI.
+- **Axios**: Cliente HTTP para realizar as requisições à API.
+- **Ant Design & Shadcn UI**: Bibliotecas de componentes visuais.
+- **Vite**: Build tool e servidor de desenvolvimento.
