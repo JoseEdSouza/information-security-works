@@ -1,19 +1,24 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './index.css'; // Importing the main CSS file
-import App from './App.tsx';
-import { Auth0Provider } from '@auth0/auth0-react';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css' // Importing the main CSS file
+import App from '@/App'
+import { AuthProvider, type TAuthConfig } from 'react-oauth2-code-pkce'
+
+const authConfig: TAuthConfig = {
+  clientId: import.meta.env.VITE_GITLAB_CLIENT_ID,
+  authorizationEndpoint: import.meta.env.VITE_GITLAB_AUTH_URL,
+  tokenEndpoint: import.meta.env.VITE_GITLAB_TOKEN_URL,
+  redirectUri: import.meta.env.VITE_GITLAB_REDIRECT_URI,
+  scope: 'read_user read_api',
+  autoLogin: false,
+  storage: 'session',
+  // decodeToken: false,
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Auth0Provider
-      domain={import.meta.env.VITE_AUTH0_DOMAIN}
-      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
-      authorizationParams={{
-        redirect_uri: window.location.origin
-      }}
-    >
+    <AuthProvider authConfig={authConfig}>
       <App />
-    </Auth0Provider>
+    </AuthProvider>
   </StrictMode>
-);
+)
