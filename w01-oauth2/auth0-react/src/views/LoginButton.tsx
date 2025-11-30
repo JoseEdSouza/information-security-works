@@ -1,4 +1,6 @@
 import { useAuth } from '@/controllers/useAuth'
+import { Button } from 'antd'
+import { GitlabOutlined } from '@ant-design/icons'
 
 interface LoginButtonProps {
   scope?: string
@@ -10,19 +12,21 @@ const LoginButton = ({ scope, label }: LoginButtonProps) => {
 
   const handleLogin = () => {
     if (scope) {
-      logIn(undefined, { scope: scope as string })
-    } else {
-      logIn()
+      sessionStorage.setItem('auth_scope', scope || '')
     }
+    logIn(undefined, scope ? { scope } : undefined)
   }
 
   return (
-    <button 
-      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2" 
+    <Button
+      type="primary"
+      size="large"
+      icon={<GitlabOutlined />}
       onClick={handleLogin}
+      block
     >
       {label || 'Log In with GitLab'}
-    </button>
+    </Button>
   )
 }
 

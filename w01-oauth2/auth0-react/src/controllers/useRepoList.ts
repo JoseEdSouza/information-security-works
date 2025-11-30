@@ -13,7 +13,7 @@ export const useRepoList = () => {
     if (token) {
       setLoading(true)
       GitLabService.getRepositories(token)
-        .then(setRepos)
+        .then(({ data }) => setRepos(data))
         .catch((err) => setError(err.message))
         .finally(() => setLoading(false))
     }
