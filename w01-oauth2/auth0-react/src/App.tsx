@@ -4,6 +4,7 @@ import LoginButton from '@/views/LoginButton'
 import RepoList from '@/views/RepoList'
 import CreateRepoModal from '@/views/CreateRepoModal'
 import Navbar from '@/views/Navbar'
+import Particles from '@/components/Particles'
 import {
   Layout,
   Spin,
@@ -151,25 +152,50 @@ function App() {
         ) : (
           <div
             style={{
+              position: 'relative',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               height: '100vh',
-              background: isDarkMode ? '#1f1e24' : '#f0f2f5',
+              background: '#000000', // Always black for particles
+              overflow: 'hidden',
             }}
           >
+            <div style={{ position: 'absolute', inset: 0 }}>
+              <Particles
+                particleColors={['#ffffff', '#ffffff']}
+                particleCount={200}
+                particleSpread={10}
+                speed={0.1}
+                particleBaseSize={100}
+                moveParticlesOnHover={true}
+                alphaParticles={false}
+                disableRotation={false}
+              />
+            </div>
+
             <Card
               style={{
                 width: 400,
                 textAlign: 'center',
                 borderRadius: 12,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+                zIndex: 10, // Ensure card is above particles
+                background: 'rgba(255, 255, 255, 0.05)', // Glassmorphic (very transparent)
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
               }}
             >
               <div style={{ position: 'absolute', top: 16, right: 16 }}>
                 <Button
                   type="text"
-                  icon={isDarkMode ? <BulbFilled /> : <BulbOutlined />}
+                  icon={
+                    isDarkMode ? (
+                      <BulbFilled style={{ color: 'white' }} />
+                    ) : (
+                      <BulbOutlined style={{ color: 'white' }} />
+                    )
+                  }
                   onClick={() => setIsDarkMode(!isDarkMode)}
                 />
               </div>
@@ -183,10 +209,21 @@ function App() {
                 >
                   <GitlabOutlined style={{ fontSize: 64, color: '#FC6D26' }} />
                 </div>
-                <Title level={2} style={{ margin: '12px 0 0' }}>
+                <Title
+                  level={2}
+                  style={{
+                    margin: '12px 0 0',
+                    color: 'white', // Force white text
+                  }}
+                >
                   GitLab Viewer
                 </Title>
-                <Text type="secondary">Securely access your repositories</Text>
+                <Text
+                  type="secondary"
+                  style={{ color: 'rgba(255, 255, 255, 0.7)' }} // Force light grey text
+                >
+                  Securely access your repositories
+                </Text>
               </div>
 
               <Space
@@ -198,7 +235,15 @@ function App() {
                   label="Login as Viewer"
                   scope="openid profile email read_user read_api"
                 />
-                <Divider plain>OR</Divider>
+                <Divider
+                  plain
+                  style={{
+                    color: 'white',
+                    borderColor: 'rgba(255,255,255,0.3)',
+                  }}
+                >
+                  OR
+                </Divider>
                 <LoginButton
                   label="Login as Manager"
                   scope="openid profile email read_user api"

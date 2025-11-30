@@ -82,7 +82,7 @@ const CreateRepoModal = ({
       <div style={{ marginTop: 24, minHeight: 200 }}>
         {error && (
           <Alert
-            message={error}
+            title={error}
             type="error"
             showIcon
             style={{ marginBottom: 16 }}

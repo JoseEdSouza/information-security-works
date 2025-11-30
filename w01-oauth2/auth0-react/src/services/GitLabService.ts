@@ -4,7 +4,11 @@ import type { Repo } from '@/models/Repo'
 export class GitLabService {
   private static API_URL = import.meta.env.VITE_GITLAB_API_URL
 
-  static async getRepositories(token: string, page: number = 1, perPage: number = 6): Promise<{ data: Repo[], total: number }> {
+  static async getRepositories(
+    token: string,
+    page: number = 1,
+    perPage: number = 6
+  ): Promise<{ data: Repo[]; total: number }> {
     const response = await axios.get<Repo[]>(`${this.API_URL}/projects`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -14,7 +18,7 @@ export class GitLabService {
         simple: true,
         page,
         per_page: perPage,
-      }
+      },
     })
 
     // GitLab sends pagination info in headers
@@ -23,22 +27,31 @@ export class GitLabService {
     return { data: response.data, total }
   }
 
-  static async createProject(token: string, name: string, description: string, initializeWithReadme: boolean = false): Promise<Repo> {
+  static async createProject(
+    token: string,
+    name: string,
+    description: string,
+    initializeWithReadme: boolean = false
+  ): Promise<Repo> {
     if (!name) {
       throw new Error('Project name is required')
     }
-    const response = await axios.post<Repo>(`${this.API_URL}/projects`, {
-      name,
-      path: name.toLowerCase().replace(/\s+/g, '-'), // Slugify name for path
-      description,
-      visibility: 'private', // Default to private for security
-      initialize_with_readme: initializeWithReadme
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    const response = await axios.post<Repo>(
+      `${this.API_URL}/projects`,
+      {
+        name,
+        path: name.toLowerCase().replace(/\s+/g, '-'), // Slugify name for path
+        description,
+        visibility: 'private', // Default to private for security
+        initialize_with_readme: initializeWithReadme,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       }
-    })
+    )
     return response.data
   }
 
